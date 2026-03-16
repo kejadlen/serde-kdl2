@@ -17,10 +17,7 @@ pub enum Error {
 
     /// Expected a specific type but got something else.
     #[error("type mismatch: expected {expected}, got {got}")]
-    TypeMismatch {
-        expected: &'static str,
-        got: String,
-    },
+    TypeMismatch { expected: &'static str, got: String },
 
     /// A required field was missing.
     #[error("missing field: {0}")]

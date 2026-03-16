@@ -332,11 +332,7 @@ impl ser::Serializer for ValueSerializer {
         self.serialize_seq(Some(len))
     }
 
-    fn serialize_tuple_struct(
-        self,
-        _name: &'static str,
-        len: usize,
-    ) -> Result<SerializeSeq> {
+    fn serialize_tuple_struct(self, _name: &'static str, len: usize) -> Result<SerializeSeq> {
         self.serialize_seq(Some(len))
     }
 
@@ -441,10 +437,7 @@ impl ser::SerializeTupleVariant for SerializeTupleVariant {
     }
 
     fn end(self) -> Result<Value> {
-        Ok(Value::Map(vec![(
-            self.variant,
-            Value::Seq(self.elements),
-        )]))
+        Ok(Value::Map(vec![(self.variant, Value::Seq(self.elements))]))
     }
 }
 
@@ -466,7 +459,7 @@ impl ser::SerializeMap for SerializeMap {
             other => {
                 return Err(Error::Unsupported(format!(
                     "map key must be a string, got {other:?}"
-                )))
+                )));
             }
         };
         self.current_key = Some(key_str);
@@ -535,9 +528,6 @@ impl ser::SerializeStructVariant for SerializeStructVariant {
     }
 
     fn end(self) -> Result<Value> {
-        Ok(Value::Map(vec![(
-            self.variant,
-            Value::Map(self.entries),
-        )]))
+        Ok(Value::Map(vec![(self.variant, Value::Map(self.entries))]))
     }
 }

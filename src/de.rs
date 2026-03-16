@@ -13,8 +13,8 @@
 //!   `shape { Circle { radius 5.0 } }`.
 
 use kdl::{KdlDocument, KdlNode, KdlValue};
-use serde::de::{self, DeserializeSeed, IntoDeserializer, MapAccess, SeqAccess, Visitor};
 use serde::Deserialize;
+use serde::de::{self, DeserializeSeed, IntoDeserializer, MapAccess, SeqAccess, Visitor};
 
 use crate::error::{Error, Result};
 
@@ -177,12 +177,10 @@ impl<'a> FieldDeserializer<'a> {
     }
 }
 
-fn first_arg_of<'a>(node: &'a KdlNode) -> Result<&'a KdlValue> {
-    node.get(0).ok_or_else(|| {
-        Error::TypeMismatch {
-            expected: "a value argument",
-            got: format!("node '{}' with no arguments", node.name().value()),
-        }
+fn first_arg_of(node: &KdlNode) -> Result<&KdlValue> {
+    node.get(0).ok_or_else(|| Error::TypeMismatch {
+        expected: "a value argument",
+        got: format!("node '{}' with no arguments", node.name().value()),
     })
 }
 
@@ -377,10 +375,7 @@ impl<'de, 'a> de::Deserializer<'de> for FieldDeserializer<'a> {
 
             // Arguments as elements
             let args = node_args(node);
-            visitor.visit_seq(ArgsSeqAccess {
-                args,
-                index: 0,
-            })
+            visitor.visit_seq(ArgsSeqAccess { args, index: 0 })
         }
     }
 
@@ -406,10 +401,7 @@ impl<'de, 'a> de::Deserializer<'de> for FieldDeserializer<'a> {
         // If node has properties, deserialize from properties
         let props = node_props(node);
         if !props.is_empty() {
-            return visitor.visit_map(PropsMapAccess {
-                props,
-                index: 0,
-            });
+            return visitor.visit_map(PropsMapAccess { props, index: 0 });
         }
         // Empty map
         visitor.visit_map(PropsMapAccess {
@@ -434,10 +426,7 @@ impl<'de, 'a> de::Deserializer<'de> for FieldDeserializer<'a> {
         // If node has properties, use them as struct fields
         let props = node_props(node);
         if !props.is_empty() {
-            return visitor.visit_map(PropsMapAccess {
-                props,
-                index: 0,
-            });
+            return visitor.visit_map(PropsMapAccess { props, index: 0 });
         }
 
         // If struct has a single field and node has a single argument,
@@ -469,14 +458,15 @@ impl<'de, 'a> de::Deserializer<'de> for FieldDeserializer<'a> {
 
         // Unit variant: first argument is variant name string
         // e.g., `color "Red"`
-        if !args.is_empty() && node.children().is_none() {
-            if let Some(s) = args[0].as_string() {
-                return visitor.visit_enum(EnumUnitAccess {
-                    variant: s,
-                    node,
-                    arg_offset: 1,
-                });
-            }
+        if !args.is_empty()
+            && node.children().is_none()
+            && let Some(s) = args[0].as_string()
+        {
+            return visitor.visit_enum(EnumUnitAccess {
+                variant: s,
+                node,
+                arg_offset: 1,
+            });
         }
 
         // Complex variant: child node named after variant
@@ -648,9 +638,7 @@ impl<'de, 'a> de::Deserializer<'de> for NodeContentDeserializer<'a> {
         let args = node_args(self.node);
         let props = node_props(self.node);
 
-        if self.node.children().is_some() {
-            self.deserialize_map(visitor)
-        } else if !props.is_empty() {
+        if self.node.children().is_some() || !props.is_empty() {
             self.deserialize_map(visitor)
         } else if args.len() == 1 {
             ValueDeserializer::new(args[0]).deserialize_any(visitor)
@@ -808,10 +796,7 @@ impl<'de, 'a> de::Deserializer<'de> for NodeContentDeserializer<'a> {
             return visitor.visit_map(DocumentMapAccess::new(children));
         }
         let props = node_props(self.node);
-        visitor.visit_map(PropsMapAccess {
-            props,
-            index: 0,
-        })
+        visitor.visit_map(PropsMapAccess { props, index: 0 })
     }
 
     fn deserialize_struct<V: Visitor<'de>>(
@@ -825,10 +810,7 @@ impl<'de, 'a> de::Deserializer<'de> for NodeContentDeserializer<'a> {
         }
         let props = node_props(self.node);
         if !props.is_empty() {
-            return visitor.visit_map(PropsMapAccess {
-                props,
-                index: 0,
-            });
+            return visitor.visit_map(PropsMapAccess { props, index: 0 });
         }
         // Single-arg struct
         let args = node_args(self.node);
@@ -854,14 +836,15 @@ impl<'de, 'a> de::Deserializer<'de> for NodeContentDeserializer<'a> {
         let args = node_args(self.node);
 
         // Unit variant: first argument is variant name
-        if !args.is_empty() && self.node.children().is_none() {
-            if let Some(s) = args[0].as_string() {
-                return visitor.visit_enum(EnumUnitAccess {
-                    variant: s,
-                    node: self.node,
-                    arg_offset: 1,
-                });
-            }
+        if !args.is_empty()
+            && self.node.children().is_none()
+            && let Some(s) = args[0].as_string()
+        {
+            return visitor.visit_enum(EnumUnitAccess {
+                variant: s,
+                node: self.node,
+                arg_offset: 1,
+            });
         }
 
         // Complex variant: child node named after variant
@@ -989,9 +972,7 @@ impl<'de, 'a> de::Deserializer<'de> for ValueDeserializer<'a> {
 
     fn deserialize_char<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         match self.value {
-            KdlValue::String(s) if s.len() == 1 => {
-                visitor.visit_char(s.chars().next().unwrap())
-            }
+            KdlValue::String(s) if s.len() == 1 => visitor.visit_char(s.chars().next().unwrap()),
             other => Err(Error::TypeMismatch {
                 expected: "single character",
                 got: format!("{other:?}"),
