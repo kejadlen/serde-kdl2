@@ -24,6 +24,7 @@ Requires Rust nightly (edition 2024).
 just all        # fmt + clippy + coverage (enforces 100%)
 just clippy     # clippy with -D warnings
 just coverage   # instrumented test run, grcov report, fails below 100%
+just mutants    # mutation testing via cargo-mutants, fails on missed mutants
 cargo test      # plain test run without coverage
 ```
 
@@ -31,6 +32,8 @@ cargo test      # plain test run without coverage
 
 - Rust edition 2024 (nightly toolchain)
 - 100% line coverage required; CI fails otherwise
+- Zero missed mutants required; `.cargo/mutants.toml` excludes equivalent
+  and unreachable mutations with documented reasons
 - `cargo clippy -- -D warnings` must pass with no warnings
 - `cargo fmt` enforced in CI
 - Use `thiserror` for error types
@@ -43,6 +46,7 @@ GitHub Actions runs on push to main and on PRs:
 
 1. `cargo fmt --check`
 2. `just clippy coverage`
+3. `just mutants`
 
 Release workflow tags calver versions on successful CI runs against main.
 Crates.io publishing is configured but currently commented out.

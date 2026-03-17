@@ -2013,3 +2013,104 @@ fn value_deserializer_seq_error() {
     };
     assert!(err.to_string().contains("sequence"));
 }
+
+// ════════════════════════════════════════════════════════════════════════
+// Mutation testing — targeted tests for surviving mutants
+// ════════════════════════════════════════════════════════════════════════
+
+// Kills mutant: de.rs FieldDeserializer::deserialize_seq
+// dash filter `==` → `!=`. With mixed dash and non-dash children,
+// the mutant would pick non-dash nodes instead of dash nodes.
+#[test]
+fn field_deserialize_seq_dash_filter_over_non_dash() {
+    #[derive(Deserialize, Debug, PartialEq)]
+    struct S {
+        items: Vec<i32>,
+    }
+    let val: S = serde_kdl2::from_str("items {\n    - 10\n    - 20\n    extra 99\n}\n").unwrap();
+    assert_eq!(val.items, vec![10, 20]);
+}
+
+// Kills mutant: de.rs FieldDeserializer::deserialize_struct
+// `fields.len() == 1 && args.len() == 1` → `||`. With 2 fields and 1
+// argument, `||` would enter SingleArgStructAccess (wrong), while `&&`
+// falls through to the empty-map path.
+#[test]
+fn field_deserialize_struct_multi_field_single_arg_falls_through() {
+    #[derive(Deserialize, Debug, PartialEq)]
+    struct Multi {
+        #[serde(default)]
+        a: Option<i32>,
+        #[serde(default)]
+        b: Option<String>,
+    }
+    #[derive(Deserialize, Debug, PartialEq)]
+    struct S {
+        data: Multi,
+    }
+    // 2 fields, 1 arg. With `&&`: false (2 ≠ 1), falls to empty map →
+    // both default to None. With `||`: `args.len() == 1` is true →
+    // SingleArgStructAccess assigns 42 to "a", producing Some(42).
+    let val: S = serde_kdl2::from_str("data 42").unwrap();
+    assert_eq!(val.data, Multi { a: None, b: None });
+}
+
+// Kills mutant: de.rs NodeContentDeserializer::deserialize_seq
+// dash filter `==` → `!=` in repeated-node context.
+#[test]
+fn node_content_seq_dash_filter_over_non_dash() {
+    #[derive(Deserialize, Debug, PartialEq)]
+    struct S {
+        group: Vec<Vec<i32>>,
+    }
+    let val: S = serde_kdl2::from_str(
+        "group {\n    - 10\n    - 20\n    extra 99\n}\ngroup {\n    - 30\n}\n",
+    )
+    .unwrap();
+    assert_eq!(val.group, vec![vec![10, 20], vec![30]]);
+}
+
+// Kills mutant: de.rs NodeContentDeserializer::deserialize_struct
+// `fields.len() == 1 && args.len() == 1` → `||` in repeated-node context.
+// With 2 fields and 1 arg per node, `||` enters SingleArgStructAccess
+// (wrong), while `&&` falls through to empty map.
+#[test]
+fn node_content_struct_multi_field_single_arg_falls_through() {
+    #[derive(Deserialize, Debug, PartialEq, Default)]
+    struct Multi {
+        #[serde(default)]
+        a: Option<i32>,
+        #[serde(default)]
+        b: Option<String>,
+    }
+    #[derive(Deserialize, Debug, PartialEq)]
+    struct S {
+        item: Vec<Multi>,
+    }
+    let val: S = serde_kdl2::from_str("item 42\nitem 99\n").unwrap();
+    assert_eq!(
+        val.item,
+        vec![Multi { a: None, b: None }, Multi { a: None, b: None }]
+    );
+}
+
+// Kills mutant: de.rs EnumUnitVariantAccess::newtype_variant_seed
+// `arg_offset < args.len()` → `arg_offset <= args.len()`. With the
+// mutant, accessing args[args.len()] panics instead of returning an error.
+#[test]
+fn enum_newtype_variant_missing_value_errors() {
+    #[derive(Deserialize, Debug)]
+    enum Val {
+        Wrap(String),
+    }
+    #[derive(Deserialize, Debug)]
+    struct S {
+        #[allow(dead_code)]
+        value: Val,
+    }
+    // "Wrap" is the only arg → arg_offset=1, args.len()=1.
+    // With `<`: 1 < 1 is false → returns error.
+    // With `<=`: 1 <= 1 is true → tries args[1] → panic.
+    let result = serde_kdl2::from_str::<S>(r#"value "Wrap""#);
+    assert!(result.is_err());
+}

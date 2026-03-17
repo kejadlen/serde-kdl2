@@ -1,0 +1,10 @@
+# Equivalent mutant: the `== 1` branch above already handles len 1,
+# so `> 1` and `>= 1` are equivalent in the else-if position.
+#
+# Unreachable code: NodeContentDeserializer::deserialize_any is behind
+# a cov-excl block — serde's Content buffering can't round-trip through
+# tree-structured deserializers.
+exclude_re = [
+    "de\\.rs:\\d+:\\d+: replace > with >= in <impl de::Deserializer<'de> for FieldDeserializer<'a>>::deserialize_any",
+    "de\\.rs:\\d+:\\d+: .* in <impl de::Deserializer<'de> for NodeContentDeserializer<'a>>::deserialize_any",
+]
