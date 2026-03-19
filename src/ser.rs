@@ -256,7 +256,10 @@ impl ser::Serializer for ValueSerializer {
     }
 
     fn serialize_u128(self, v: u128) -> Result<Value> {
-        Ok(Value::Integer(v as i128))
+        let i: i128 = v
+            .try_into()
+            .map_err(|_| Error::IntegerOutOfRange(v as i128))?;
+        Ok(Value::Integer(i))
     }
 
     fn serialize_f32(self, v: f32) -> Result<Value> {

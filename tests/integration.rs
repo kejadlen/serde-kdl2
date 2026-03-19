@@ -773,6 +773,13 @@ ser_err!(serialize_top_level_string_err, "hello");
 ser_err!(serialize_top_level_bool_err, true);
 
 #[test]
+fn serialize_u128_overflow() {
+    let val = WU128 { value: u128::MAX };
+    let err = serde_kdl2::to_string(&val).unwrap_err();
+    assert!(matches!(err, serde_kdl2::Error::IntegerOutOfRange(_)));
+}
+
+#[test]
 fn serialize_top_level_not_struct_error_type() {
     let err = serde_kdl2::to_string(&42i32).unwrap_err();
     assert!(matches!(err, serde_kdl2::Error::TopLevelNotStruct));
