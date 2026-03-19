@@ -988,7 +988,9 @@ impl<'de, 'a> de::Deserializer<'de> for ValueDeserializer<'a> {
 
     fn deserialize_char<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         match self.value {
-            KdlValue::String(s) if s.len() == 1 => visitor.visit_char(s.chars().next().unwrap()),
+            KdlValue::String(s) if s.chars().count() == 1 => {
+                visitor.visit_char(s.chars().next().unwrap())
+            }
             other => Err(Error::TypeMismatch {
                 expected: "single character",
                 got: format!("{other:?}"),

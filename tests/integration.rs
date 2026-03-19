@@ -718,6 +718,9 @@ roundtrip!(
     }
 );
 roundtrip!(roundtrip_char, WCh, WCh { letter: 'X' });
+roundtrip!(roundtrip_char_multibyte, WCh, WCh { letter: 'é' });
+roundtrip!(roundtrip_char_cjk, WCh, WCh { letter: '中' });
+roundtrip!(roundtrip_char_emoji, WCh, WCh { letter: '🦀' });
 roundtrip!(
     roundtrip_i128_u128,
     WBi,
