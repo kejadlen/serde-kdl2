@@ -161,6 +161,13 @@ let s: String = serde_kdl2::to_string_pretty(&config)?;
 let doc: kdl::KdlDocument = serde_kdl2::to_doc(&config)?;
 ```
 
+## AI Usage
+
+I built this crate with substantial help from Claude (Anthropic). The AI
+wrote most of the initial serializer, deserializer, and test code. I directed
+the design, reviewed every change, and iterated on the mapping rules. Commit
+messages note AI assistance with `Assisted-by` footers.
+
 ## License
 
-MIT OR Apache-2.0
+MIT
