@@ -173,8 +173,21 @@ impl<'a> FieldDeserializer<'a> {
             .ok_or_else(|| Error::Message("expected at least one node".into()))
     }
 
+    /// Returns the single node, or errors if there are duplicates.
+    /// Used by scalar deserialize methods to reject ambiguous duplicate nodes.
+    fn only_node(&self) -> Result<&'a KdlNode> {
+        if self.nodes.len() > 1 {
+            return Err(Error::Message(format!(
+                "duplicate node '{}': expected a single node for scalar field, found {}",
+                self.nodes[0].name().value(),
+                self.nodes.len()
+            )));
+        }
+        self.first_node()
+    }
+
     fn first_arg(&self) -> Result<&'a KdlValue> {
-        let node = self.first_node()?;
+        let node = self.only_node()?;
         first_arg_of(node)
     }
 }
@@ -395,7 +408,7 @@ impl<'de, 'a> de::Deserializer<'de> for FieldDeserializer<'a> {
     }
 
     fn deserialize_map<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        let node = self.first_node()?;
+        let node = self.only_node()?;
         // If node has children, deserialize from children document
         if let Some(children) = node.children() {
             return visitor.visit_map(DocumentMapAccess::new(children));
@@ -418,7 +431,7 @@ impl<'de, 'a> de::Deserializer<'de> for FieldDeserializer<'a> {
         fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value> {
-        let node = self.first_node()?;
+        let node = self.only_node()?;
 
         // If node has children, deserialize struct from children
         if let Some(children) = node.children() {
@@ -455,7 +468,7 @@ impl<'de, 'a> de::Deserializer<'de> for FieldDeserializer<'a> {
         _variants: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value> {
-        let node = self.first_node()?;
+        let node = self.only_node()?;
         let args = node_args(node);
 
         // Unit variant: first argument is variant name string

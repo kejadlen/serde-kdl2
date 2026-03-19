@@ -1050,6 +1050,14 @@ fn serde_error_custom_impls() {
 // ════════════════════════════════════════════════════════════════════════
 
 deser_err!(deserialize_invalid_kdl, SimpleConfig, "{{{{invalid");
+deser_field_err!(
+    deserialize_duplicate_scalar_node,
+    name: String,
+    indoc! {r#"
+        name "first"
+        name "second"
+    "#}
+);
 deser_field_err!(deserialize_bool_type_mismatch, flag: bool, r#"flag "not a bool""#);
 deser_field_err!(deserialize_string_type_mismatch, name: String, "name 42");
 deser_field_err!(deserialize_int_type_mismatch, value: i32, r#"value "not a number""#);
