@@ -121,10 +121,10 @@ roundtrip!(
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct BooleanDefaults {
-    #[serde(deserialize_with = "serde_kdl2::bool_defaults::bare_true")]
+    #[serde(deserialize_with = "serde_kdl2::bare_defaults::bool::bare_true")]
     enabled: bool,
     
-    #[serde(deserialize_with = "serde_kdl2::bool_defaults::bare_false")]
+    #[serde(deserialize_with = "serde_kdl2::bare_defaults::bool::bare_false")]
     disabled: bool,
 }
 
@@ -175,7 +175,7 @@ deser_ok!(
 fn boolean_defaults_single_bare_true() {
     #[derive(Debug, Deserialize, PartialEq)]
     struct W {
-        #[serde(deserialize_with = "serde_kdl2::bool_defaults::bare_true")]
+        #[serde(deserialize_with = "serde_kdl2::bare_defaults::bool::bare_true")]
         flag: bool,
     }
     let val: W = serde_kdl2::from_str("flag").unwrap();
@@ -187,7 +187,7 @@ fn boolean_defaults_single_bare_true() {
 fn boolean_defaults_single_bare_false() {
     #[derive(Debug, Deserialize, PartialEq)]
     struct W {
-        #[serde(deserialize_with = "serde_kdl2::bool_defaults::bare_false")]
+        #[serde(deserialize_with = "serde_kdl2::bare_defaults::bool::bare_false")]
         flag: bool,
     }
     let val: W = serde_kdl2::from_str("flag").unwrap();
@@ -199,7 +199,7 @@ fn boolean_defaults_single_bare_false() {
 fn boolean_defaults_explicit_false_with_bare_true() {
     #[derive(Debug, Deserialize, PartialEq)]
     struct W {
-        #[serde(deserialize_with = "serde_kdl2::bool_defaults::bare_true")]
+        #[serde(deserialize_with = "serde_kdl2::bare_defaults::bool::bare_true")]
         flag: bool,
     }
     let val: W = serde_kdl2::from_str("flag #false").unwrap();
