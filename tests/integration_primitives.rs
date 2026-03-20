@@ -206,6 +206,44 @@ fn boolean_defaults_explicit_false_with_bare_true() {
     assert_eq!(val.flag, false);
 }
 
+// Test error handling for the macro-generated deserializers
+serde_kdl2::bare_default!(error_test_deser, bool, true);
+serde_kdl2::bare_default!(string_test_deser, String, "default".to_string());
+
+#[test]
+fn macro_generated_deserializer_error_handling() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct W {
+        #[serde(default, deserialize_with = "error_test_deser")]
+        flag: bool,
+    }
+    
+    // Test that invalid types produce errors
+    let result: Result<W, _> = serde_kdl2::from_str(r#"flag "not_a_bool""#);
+    assert!(result.is_err());
+}
+
+#[test]
+fn macro_generic_type_support() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct W {
+        #[serde(default, deserialize_with = "string_test_deser")]
+        name: String,
+    }
+    
+    // Test bare node gets default
+    let val: W = serde_kdl2::from_str("name").unwrap();
+    assert_eq!(val.name, "default");
+    
+    // Test missing field gets default (from serde's default)
+    let val: W = serde_kdl2::from_str("").unwrap();
+    assert_eq!(val.name, "");
+    
+    // Test that non-unit values cause errors (to trigger expecting method)
+    let result: Result<W, _> = serde_kdl2::from_str(r#"name 123"#);
+    assert!(result.is_err());
+}
+
 // Test error case - invalid type for boolean defaults
 #[test]
 fn boolean_defaults_type_error() {
@@ -217,6 +255,136 @@ fn boolean_defaults_type_error() {
     let result: Result<W, _> = serde_kdl2::from_str(r#"flag "not_a_bool""#);
     assert!(result.is_err());
 }
+
+
+
+// ── Custom Boolean Defaults with Macro ─────────────────────────────────
+
+// Generate custom deserializers using the macro
+serde_kdl2::bare_default!(writable_deser, bool, true);
+serde_kdl2::bare_default!(readonly_deser, bool, false);
+
+// Custom missing default function
+fn enabled_missing() -> bool {
+    true
+}
+
+// Test the clean macro-based API
+#[derive(Debug, Deserialize, PartialEq)]
+struct CustomBoolDefaults {
+    // missing → false (default), bare → true
+    #[serde(default, deserialize_with = "writable_deser")]
+    writable: bool,
+
+    // missing → true (custom), bare → false
+    #[serde(default = "enabled_missing", deserialize_with = "readonly_deser")]
+    readonly: bool,
+
+    // missing → false (default), bare → false
+    #[serde(default, deserialize_with = "readonly_deser")]
+    disabled: bool,
+
+    // missing → true (custom), bare → true
+    #[serde(default = "enabled_missing", deserialize_with = "writable_deser")]
+    enabled: bool,
+}
+
+// Test missing fields use the correct defaults
+deser_ok!(
+    custom_bool_missing_fields,
+    CustomBoolDefaults,
+    "",
+    CustomBoolDefaults {
+        writable: false, // default (false)
+        readonly: true,  // enabled_missing() → true
+        disabled: false, // default (false)
+        enabled: true,   // enabled_missing() → true
+    }
+);
+
+// Test bare fields use the correct defaults
+deser_ok!(
+    custom_bool_bare_fields,
+    CustomBoolDefaults,
+    indoc! {"
+        writable
+        readonly
+        disabled
+        enabled
+    "},
+    CustomBoolDefaults {
+        writable: true,  // writable_deser → true
+        readonly: false, // readonly_deser → false
+        disabled: false, // readonly_deser → false
+        enabled: true,   // writable_deser → true
+    }
+);
+
+// Test explicit values override all defaults
+deser_ok!(
+    custom_bool_explicit_values,
+    CustomBoolDefaults,
+    indoc! {"
+        writable #false
+        readonly #true
+        disabled #true
+        enabled #false
+    "},
+    CustomBoolDefaults {
+        writable: false, // explicit
+        readonly: true,  // explicit
+        disabled: true,  // explicit
+        enabled: false,  // explicit
+    }
+);
+
+// Test the mount use case with clean macro API
+serde_kdl2::bare_default!(mount_writable_deser, bool, true);
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct CleanMount {
+    source: String,
+    #[serde(default, deserialize_with = "mount_writable_deser")]
+    writable: bool,
+}
+
+deser_ok!(
+    clean_mount_missing_writable,
+    CleanMount,
+    indoc! {"
+        source \"/host/path\"
+    "},
+    CleanMount {
+        source: "/host/path".to_string(),
+        writable: false, // missing → false (default)
+    }
+);
+
+deser_ok!(
+    clean_mount_bare_writable,
+    CleanMount,
+    indoc! {"
+        source \"/host/path\"
+        writable
+    "},
+    CleanMount {
+        source: "/host/path".to_string(),
+        writable: true, // bare → true (macro)
+    }
+);
+
+deser_ok!(
+    clean_mount_explicit_writable,
+    CleanMount,
+    indoc! {"
+        source \"/host/path\"
+        writable #false
+    "},
+    CleanMount {
+        source: "/host/path".to_string(),
+        writable: false, // explicit
+    }
+);
 
 // ── Characters ──────────────────────────────────────────────────────────
 
