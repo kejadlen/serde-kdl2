@@ -129,6 +129,36 @@ roundtrip!(
     }
 );
 
+// ── Single-element vec of structs ──────────────────────────────────────
+
+deser_ok!(
+    deserialize_single_element_vec_structs,
+    Cluster,
+    indoc! {r#"
+        server {
+            host "localhost"
+            port 8080
+        }
+    "#},
+    Cluster {
+        server: vec![Server {
+            host: "localhost".into(),
+            port: 8080,
+        }],
+    }
+);
+
+roundtrip!(
+    roundtrip_single_element_vec_structs,
+    Cluster,
+    Cluster {
+        server: vec![Server {
+            host: "localhost".into(),
+            port: 8080,
+        }],
+    }
+);
+
 // ── Dash children ──────────────────────────────────────────────────────
 
 deser_field!(

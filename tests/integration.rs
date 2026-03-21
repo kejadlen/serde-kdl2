@@ -1493,15 +1493,17 @@ deser_field!(
 );
 
 // ── Non-dash children as sequence ──────────────────────────────────────
+// A single node with children is treated as a single-element sequence,
+// not as individual elements. Use `-` convention for child elements.
 
 deser_field!(
     deserialize_children_as_sequence,
     items: Vec<i32>,
     indoc! {"
         items {
-            item 1
-            item 2
-            item 3
+            - 1
+            - 2
+            - 3
         }
     "},
     vec![1, 2, 3]

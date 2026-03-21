@@ -353,8 +353,8 @@ impl<'de, 'a> de::Deserializer<'de> for FieldDeserializer<'a> {
         // Strategy:
         // 1. Multiple nodes with same name → each node is an element
         // 2. Single node with `-` children → each `-` child is an element
-        // 3. Single node with multiple args → each arg is an element
-        // 4. Single node with non-`-` children → children nodes are elements
+        // 3. Single node with children → single-element sequence (the node itself)
+        // 4. Single node with multiple args → each arg is an element
 
         if self.nodes.len() > 1 {
             // Multiple nodes → each node contributes one element
@@ -378,17 +378,16 @@ impl<'de, 'a> de::Deserializer<'de> for FieldDeserializer<'a> {
                         index: 0,
                     });
                 }
-                // Non-dash children: treat each child as an element
-                let child_nodes: Vec<&KdlNode> = children.nodes().iter().collect();
-                if !child_nodes.is_empty() {
-                    return visitor.visit_seq(ChildNodeSeqAccess {
-                        nodes: child_nodes,
+                // Single node with non-empty children → treat node as single element
+                if !children.nodes().is_empty() {
+                    return visitor.visit_seq(MultiNodeSeqAccess {
+                        nodes: self.nodes,
                         index: 0,
                     });
                 }
             }
 
-            // Arguments as elements
+            // Arguments as elements (or empty seq if no args)
             let args = node_args(node);
             visitor.visit_seq(ArgsSeqAccess { args, index: 0 })
         }
