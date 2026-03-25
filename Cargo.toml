@@ -1,6 +1,6 @@
 [package]
 name = "serde-kdl2"
-version = "0.1.1-alpha.5"
+version = "0.1.1-alpha.6"
 edition = "2024"
 description = "Serde integration for KDL (KDL Document Language)"
 license = "MIT"
