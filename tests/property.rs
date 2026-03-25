@@ -513,13 +513,16 @@ struct Wide {
     unsigned: u128,
 }
 
-/// i128 and u128 roundtrip within the range that KDL can represent as
-/// integers (the kdl crate uses i128 internally, and u128::MAX overflows).
+/// i128 and u128 roundtrip within the range that KDL can represent.
+///
+/// The kdl crate's parser can't roundtrip `i128::MIN` — it parses the
+/// sign and magnitude separately, and the magnitude of `i128::MIN`
+/// (`i128::MAX + 1`) overflows during parsing. u128 values above
+/// `i128::MAX` overflow the crate's i128 storage.
 #[hegel::test]
 fn i128_u128_roundtrip(tc: TestCase) {
     let val = Wide {
-        signed: tc.draw(integers()),
-        // u128 values above i128::MAX overflow the kdl crate's i128 storage.
+        signed: tc.draw(integers::<i128>().min_value(i128::MIN + 1)),
         unsigned: tc.draw(integers::<u128>().max_value(i128::MAX as u128)),
     };
     let serialized = serde_kdl2::to_string(&val).unwrap();
